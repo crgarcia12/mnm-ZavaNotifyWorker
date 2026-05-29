@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Tasks template for modernization plan. Generate this file alongside plan.md to track individual migration tasks.",
+  "tasks": [
+    {
+      "type": "upgrade",
+      "id": "001-upgrade-dotnet-10",
+      "description": "Upgrade the application to the latest .NET LTS runtime and project format.",
+      "reason": "The user requested modernization to the latest framework and Azure modernization work depends on a supported modern runtime.",
+      "requirements": "Upgrade the project from .NET Framework 4.8 to .NET 10 (latest LTS), including SDK-style project modernization and compatibility updates required for subsequent Azure service migrations.",
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "002-transform-rabbitmq-to-servicebus",
+      "description": "Modernize worker messaging from RabbitMQ to Azure Service Bus.",
+      "reason": "The current worker consumes messages from RabbitMQ and needs Azure-native messaging for cloud modernization.",
+      "requirements": "Migrate queue connectivity and message processing from RabbitMQ to Azure Service Bus while preserving existing notification processing behavior and using managed identity authentication.",
+      "dependencies": [
+        "001-upgrade-dotnet-10"
+      ],
+      "skills": [
+        {
+          "name": "migration-azure-servicebus",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "003-transform-smtp-to-acs-email",
+      "description": "Modernize email notification delivery to Azure Communication Services Email.",
+      "reason": "The worker currently sends email through SMTP and should use Azure-native managed email services.",
+      "requirements": "Replace SMTP-based email delivery with Azure Communication Services Email while preserving notification content behavior and using managed identity authentication.",
+      "dependencies": [
+        "001-upgrade-dotnet-10"
+      ],
+      "skills": [
+        {
+          "name": "migration-azure-communication-email",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "security",
+      "id": "004-security-cve-remediation",
+      "description": "Scan dependencies for known CVEs and remediate vulnerabilities.",
+      "reason": "Security remediation is required in every modernization plan before deployment.",
+      "requirements": "Scan all project dependencies for known CVEs and remediate identified vulnerabilities. Upgrade vulnerable dependencies to minimum patched versions and validate build and tests after remediation.",
+      "dependencies": [
+        "001-upgrade-dotnet-10",
+        "002-transform-rabbitmq-to-servicebus",
+        "003-transform-smtp-to-acs-email"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "deployment",
+      "id": "005-deployment-azure-container-apps",
+      "description": "Deploy the modernized worker to Azure Container Apps.",
+      "reason": "The user requested Azure deployment for the modernized application.",
+      "requirements": "Containerize and deploy the modernized worker to Azure Container Apps using managed identity and production-ready runtime configuration.",
+      "dependencies": [
+        "004-security-cve-remediation"
+      ],
+      "skills": [
+        {
+          "name": "azcli-containerapp-deploy",
+          "location": "builtin"
+        }
+      ],
+      "targetAzureService": "Azure Container Apps",
+      "resourceStatus": "create new service",
+      "deploymentTool": "bicep"
+    }
+  ],
+  "metadata": {
+    "planName": "plan",
+    "projectName": "ZavaNotifyWorker",
+    "language": "dotnet",
+    "createdAt": "2026-05-29T08:07:36.875Z",
+    "version": "1.0"
+  }
+}
