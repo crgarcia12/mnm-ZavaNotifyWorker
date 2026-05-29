@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Modernization tasks for moving ZavaNotifyWorker to Azure.",
+  "tasks": [
+    {
+      "type": "transform",
+      "id": "001-transform-rabbitmq-to-servicebus",
+      "description": "Migrate notification queue processing from RabbitMQ to Azure Service Bus.",
+      "reason": "Use Azure-managed messaging for queue consumption and dead-letter handling in the notification worker.",
+      "requirements": "Replace RabbitMQ queue connectivity, message retrieval, acknowledgement, and dead-letter behavior with Azure Service Bus while preserving current notification-processing behavior and using Managed Identity authentication.",
+      "skills": [
+        {
+          "name": "migration-azure-servicebus",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "002-transform-smtp-to-acs-email",
+      "description": "Migrate notification email delivery from SMTP to Azure Communication Services Email.",
+      "reason": "Use an Azure-managed email service instead of the current SMTP relay for notification delivery.",
+      "requirements": "Replace SMTP-based email sending with Azure Communication Services Email while preserving the current notification content and using Managed Identity authentication.",
+      "skills": [
+        {
+          "name": "migration-azure-communication-email",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "security",
+      "id": "003-security-cve-remediation",
+      "description": "Scan project dependencies and remediate known CVEs before Azure deployment.",
+      "reason": "Ensure the modernized worker is free of known dependency vulnerabilities before it is deployed to Azure.",
+      "requirements": "Upgrade vulnerable dependencies to the minimum patched version. If a CVE fix requires a major version upgrade, document the affected dependency, the current version, the upgraded major version, and the breaking-change risk. Verify that the project builds and applicable tests pass after remediation.",
+      "dependencies": [
+        "001-transform-rabbitmq-to-servicebus",
+        "002-transform-smtp-to-acs-email"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "deployment",
+      "id": "004-deployment-azure-container-apps",
+      "description": "Deploy the notification worker to Azure Container Apps.",
+      "reason": "Provide a managed Azure hosting target for the worker after the Azure service migrations are complete.",
+      "requirements": "Containerize the worker as needed for Azure Container Apps, configure runtime settings for the Azure-hosted messaging and email integrations, and deploy the application to an existing or externally managed Azure Container Apps environment.",
+      "dependencies": [
+        "001-transform-rabbitmq-to-servicebus",
+        "002-transform-smtp-to-acs-email",
+        "003-security-cve-remediation"
+      ],
+      "skills": [
+        {
+          "name": "azcli-containerapp-deploy",
+          "location": "builtin"
+        }
+      ],
+      "targetAzureService": "Azure Container Apps",
+      "resourceStatus": "existing resource",
+      "deploymentTool": "bicep"
+    }
+  ],
+  "metadata": {
+    "planName": "modernization-plan",
+    "projectName": "ZavaNotifyWorker",
+    "language": "dotnet",
+    "createdAt": "2026-05-29T00:32:54.452+00:00",
+    "version": "1.0"
+  }
+}
